@@ -1,3 +1,9 @@
+                        NB: This is not the markdow of the project, it is just my personal
+                            documentation as I continue working on the project.
+                            An updated markdown will be created once I'm done with the project
+
+
+
 In Alien Invasion, the player controls a rocket ship that appears
 at the bottom center of the screen. The player can move the ship
 right and left using the arrow keys and shoot bullets using the
@@ -89,3 +95,103 @@ When you run alien_invasion.py now you won’t yet see any changes,
 because all we’ve done is move the settings we were already using else­ where. 
 
 Now we’re ready to start adding new elements to the screen.
+
+//  creating the ship class
+> > In pygame everything including game elements, are treated like rect­angles (rects), even if they’re not exactly shaped like rectangles.
+    Treating an element as a rectangle is efficient because rectangles are simple geo­metric shapes. 
+    
+    When Pygame needs to figure out whether two game ele­ments have collided, for example, it can do this more quickly if it treats each object as a rectangle. 
+    This approach usually works well enough that no one playing the game will notice that we’re not working with the exact shape of each game element. 
+    We’ll treat the ship and the screen as rect­angles in this class.
+
+First off > >
+    
+    We import the pygame module before defining the class. 
+    We then define the __init__() method of Ship which takes two parameters: the self reference and a reference to the current instance of the AlienInvasion class. 
+    This will give Ship access to all the game resources defined in AlienInvasion class.
+    We  then assign the screen(self.screen) to an attribute of Ship, so we can access it easily in all the methods in this class.
+    
+Next > >
+
+    We access the screen’s rect attribute using the get_rect() method and assign it to self.screen_rect.
+    
+    Doing so allows us to place the ship in the correct location on the screen.
+    
+    To load the image, we call pygame.image.load() and give it the loca­tion of our ship image.
+    
+    This function returns a surface representing the ship, which we assign to self.image.
+    
+    When the image is loaded, we call get_rect() to access the ship surface’s rect attribute so we can later use it to place the ship.
+
+    When you’re working with a rect object, you can use the x- and y-coordi­nates of the top, bottom, left, and right edges of the rectangle, as well as the
+    center, to place the object. 
+    
+    You can set any of these values to establish the current position of the rect.
+    
+    When you’re centering a game element, work with the center , centerx , or centery attributes of a rect.
+    When you’re working at an edge of the screen, work with the top, bottom, left, or right attributes.
+    
+    There are also attributes that combine these properties, such as midbottom, midtop, midleft, and midright. 
+    When you’re adjusting the horizontal or verti­cal placement of the rect, you can just use the x and y attributes, which are the x- and y-coordinates of its top-left corner. 
+    These attributes spare you from having to do calculations that game developers formerly had to do manually, and you’ll use them often.
+
+    We’ll position our ship at the bottom center of the screen.
+    
+    To do so,make the value of self.rect.midbottom match the midbottom attribute of the screen’s rect.
+    
+    Pygame uses these rect attributes to position the ship image so it’s centered horizontally and aligned with the bottom of the screen.
+
+    We then define the blitme() method, which draws the image to the screen at the position specified by self.rect .
+
+//  Moving the ship
+
+Next, we’ll give the player the ability to move the ship right and left.
+We’ll write code that responds when the player presses the right or left arrow key.
+
+Whenever the player presses a key, that keypress is registered in Pygame as
+an event.
+
+Each event is picked up by the pygame.event.get() method. 
+
+We need to specify in our _check_events() method what kind of events we want the game to check for.
+
+Each keypress is registered as a KEYDOWN event.
+
+When Pygame detects a KEYDOWN event, we need to check whether the key that was pressed is one that triggers a certain action. 
+
+For example, if the player presses the right arrow key, we want to increase the ship’s rect.x (x co-ordinates) value to move the ship to the right.
+
+To do this, we'll add an elif block, to our  _check_events helper method, that will check if the event type is key down.
+
+If true, it will trigger another if statement to check if the key is left key or right key
+
+Before proceeding further, we'll need to modify the class Ship
+
+We'll add two flags, moving_right and moving_left which will both be initialised to False
+
+Then we'll add an update function to the ship's class that will:
+    increment the ship's rec x coordinates if moving_right is true
+    decrement the ship's rec x coordinates if moving_left is true
+
+This will help us to continually move the ship to the right if the right key is pressed down
+and continually move the ship to the left if left key is pressed down
+
+We can then continue modifying our _check_events helper function for the movement
+
+so if the event is key down and key pressed down is right, we'll set self.ship.moving_right to true
+and if the key pressed down is left, we'll set the self.ship.moving_left to true
+
+We'll also add another condition to check for keyup events.
+This means that the user has stopped pressing the key down and the ship needs to halt
+
+so if event is keyup and key pressed down in right, we'll set self.ship.moving_right to False
+and if key pressed down is left, we'll set the self.ship.moving_left to False
+
+to make sure that our events ar updated continually, we'll call the self.ship.update() method in the while loop
+inside the run game method.
+
+
+
+
+
+//  Next, adjusting the ship's speed and limiting the ship's range
