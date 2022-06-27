@@ -1,0 +1,91 @@
+In Alien Invasion, the player controls a rocket ship that appears
+at the bottom center of the screen. The player can move the ship
+right and left using the arrow keys and shoot bullets using the
+spacebar. When the game begins, a fleet of aliens fills the sky
+and moves across and down the screen. The player shoots and
+destroys the aliens. If the player shoots all the aliens, a new fleet
+appears that moves faster than the previous fleet. If any alien hits
+the player’s ship or reaches the bottom of the screen, the player
+loses a ship. If the player loses three ships, the game ends.
+
+> > > Walkthrough < < <
+
+First we import the sys and pygame modules.
+The pygame module contains the functionality we need to run the game
+The sys module will help us exit the game when the player quits
+
+// Beginning
+
+The game Alien invasion, starts as a class AlienInvasion
+in the __init__ method, the pygame.init() function initializes the background settigs that
+pygame needs to work correctly
+
+> > Then we call pygame.display.set_mode() to create a display window, 
+    on which we’ll draw all the game’s graphical elements.
+
+    The argument (1200,800) is a tuple that defines the dimensions for the game window
+    which will be 1200px wide by 800px high.
+
+    We assign these display window to the attribute self.screen, so that it will be available
+    to all methods in the class.
+
+NB: The object we assigned to self.screen(the display window), is called a surface
+    A surface in pygame is a part of the screen where a game element can be displayed
+
+    Each element in the game like an alien or a ship, is its own surface
+    The surface returned by display.set_mode(), represents the entire game window
+
+    When we activate the game's animation loop, this surface will be redrawn on every pass
+    through the loop so it can me updated by any changes triggered by user input
+
+> > We then define the run_game() method, which controlls the game.
+    This method contains a while loop that runs continually. 
+
+    The while loop contains an event loop and code that manages screen updates.
+    An event is an action that the user performs while playing the game, such as pressing a key or moving the mouse.
+   
+    To make our program respond to events, we write this event loop to listen for events and perform appropriate
+    tasks depending on the kinds of events that occur.
+
+    To access the events that Pygame detects, we’ll use the pygame.event.get() function. 
+    This function returns a list of events that have taken place since the last time that this function was called.
+    
+    Any keyboard or mouse event will cause this for loop to run. Inside the loop, we’ll write a series of if
+    statements to detect and respond to specific events.
+    
+    For example, when the player clicks the game window’s close button, a pygame.QUIT event is detected and we call sys.exit() to exit the game.
+
+    The call to pygame.display.flip() tells Pygame to make the most recently drawn screen visible. 
+    In this case, it simply draws an empty screen on each pass through the while loop, erasing the old screen so only the new screen is visible.
+    
+    When we move the game elements around, pygame.display.flip() continually updates the display to show the new positions of game
+    elements and hides the old ones, creating the illusion of smooth movement.
+    
+    At the end of the file, we create an instance of the game, and then call run_game().
+    We place run_game() in an if block that only runs if the file is called directly. 
+    When you run this alien_invasion.py file, you should see an empty Pygame window.
+
+
+//  Setting the background color
+By default, pygame will display a black background color.
+
+To change the background color, we create a variable in the __init__ method self.bg_color
+and assign it any rgb value we want eg (230,230,230).
+
+We also have to update the run_game method, and redraw the screen with the new color in each pass of the while loop
+We fill the screen with the background color using the fill() method, which acts on a surface and takes only one argument: a color.
+
+
+
+// Adding the settings class
+We import Settings into the main program file. 
+
+Then we create an instance of Settings and assign it to self.settings, after making the call to pygame.init().
+
+When we create a screen surface, we use the screen_width and screen_height attributes of self.settings, and then we use self.settings to
+access the background color when filling the screen as well.
+
+When you run alien_invasion.py now you won’t yet see any changes,
+because all we’ve done is move the settings we were already using else­ where. 
+
+Now we’re ready to start adding new elements to the screen.
