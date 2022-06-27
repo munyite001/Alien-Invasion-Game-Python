@@ -194,4 +194,54 @@ inside the run game method.
 
 
 
-//  Next, adjusting the ship's speed and limiting the ship's range
+//  ADJUSTING SHIP'S SPEED
+We will then add an attribute self.ship_speed to the settings class and initialize it to 1.5
+
+We will then create a settings attribute for Ship , so we can use it in update().
+
+Because we’re adjusting the position of the ship by fractions of a pixel, we
+need to assign the position to a variable that can store a decimal value. 
+
+You can use a decimal value to set an attribute of rect , but the rect will only
+keep the integer portion of that value. 
+
+To keep track of the ship’s position accurately, we define a new self.x attribute that can hold decimal values v.
+
+We use the float() function to convert the value of self.rect.x to a decimal
+and assign this value to self.x .
+
+Now when we change the ship’s position in update(), the value of self.x
+is adjusted by the amount stored in settings.ship_speed.
+
+After self.x has been updated, we use the new value to update self.rect.x , which controls the position of the ship x. Only the integer portion of self.x will be stored
+in self.rect.x.
+
+
+//  Limiting the ship's range
+To limit the range at which the ship can move, and prevent it from disappearing at the screen's edge
+we can do this by updating th update() method.ship.
+
+we'll write an if statement to check the condition:
+
+if self.moving_right and self.rect.right < self.screen_rect.right:
+
+    self.x += self.settings.ship_speed
+
+if self.moving_left and self.rect.left > 0:
+
+This code checks the position of the ship before changing the value of self.x.
+
+The code self.rect.right returns the x-coordinate of the right edge of the ship’s rect.
+
+If this value is less than the value returned by self.screen_rect.right,
+the ship hasn’t reached the right edge of the screen.
+
+The same goes for the left edge: if the value of the left side of the rect is greater than
+zero, the ship hasn’t reached the left edge of the screen v.
+This ensures the ship is within these bounds before adjusting the value of self.x .
+
+
+//  Exiting with keyboard q
+To allow users to quit by pressing the 'q' button, we can add another elif block, in the check_down_keys method
+that will call the sys.exit() method if the key pressed down is 'q'
+
