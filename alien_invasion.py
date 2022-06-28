@@ -1,5 +1,4 @@
 """"    Creating an empty pygame window and responding to user input    """
-
 import sys
 
 import pygame
@@ -7,6 +6,8 @@ import pygame
 from settings import Settings
 
 from ship import Ship
+
+from bullets import Bullet
 
 class AlienInvasion:
     """ Overall class to manage game assets and behavior """
@@ -33,12 +34,15 @@ class AlienInvasion:
         
         self.ship = Ship(self)  #Creating an instance of the ship class we imported
 
+        self.bullets = pygame.sprite.Group()
+
     def run_game(self):
         """ Start the main loop for the game """
         while True:
             self._check_events()
-            self._update_screen()
-            self.ship.update()          
+            self.ship.update()  
+            self._update_bullets() 
+            self._update_screen()    
 
             
 
@@ -55,11 +59,7 @@ class AlienInvasion:
                     self._check_keyup_events(event)
                     
 
-    def _update_screen(self):
-        #   Update images on the screen, and flip to the new screen
-        self.screen.fill(self.settings.bg_color)
-        self.ship.blitme()
-        pygame.display.flip()
+
 
     
 
@@ -68,19 +68,55 @@ class AlienInvasion:
         if event.key == pygame.K_RIGHT:
         #   Move the ship to the right
             self.ship.moving_right = True
-        elif event.key == pygame.K_q:
+        elif event.key == pygame.K_q or event.key == pygame.K_ESCAPE:
             sys.exit()
-
         elif event.key == pygame.K_LEFT:
         #   Move the ship to the left
             self.ship.moving_left = True   
+        elif event.key == pygame.K_SPACE:
+            self._fire_bullet()
 
     """ Function to check key up events  """
     def _check_keyup_events(self,event):
         if event.key == pygame.K_RIGHT:
             self.ship.moving_right = False
         elif event.key == pygame.K_LEFT:
-            self.ship.moving_left = False    
+            self.ship.moving_left = False  
+
+
+    def _fire_bullet(self):
+        """ Create a new bullet and add it to the bullets group """  
+        if len(self.bullets) < self.settings.bullets_count:
+            new_bullet = Bullet(self)
+            self.bullets.add(new_bullet)
+
+    def _update_bullets(self):
+        """Update bullet positions and get rid of old bullets"""
+        #Update bullet positions
+        self.bullets.update()
+
+        #delete old bullets
+
+        #Delete old bullets
+        for bullet in self.bullets.copy():
+            if bullet.rect.bottom <= 0:
+                self.bullets.remove(bullet)
+
+
+
+
+    def _update_screen(self):
+        #   Update images on the screen, and flip to the new screen
+        self.screen.fill(self.settings.bg_color)
+
+        self.ship.blitme()
+
+        for bullet in self.bullets.sprites():
+            bullet.draw_bullet()
+
+        pygame.display.flip()
+
+
 
 
 if __name__ == '__main__':

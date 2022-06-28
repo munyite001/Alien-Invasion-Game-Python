@@ -245,3 +245,28 @@ This ensures the ship is within these bounds before adjusting the value of self.
 To allow users to quit by pressing the 'q' button, we can add another elif block, in the check_down_keys method
 that will call the sys.exit() method if the key pressed down is 'q'
 
+//  Shooting bullets
+
+The Bullet class inherits from Sprite, which we import from the pygame.sprite module.
+
+When you use sprites, you can group related elements in your game and act on all the grouped elements at once.
+
+To create a bulletinstance, __init__() needs the current instance of AlienInvasion, and we call super() to inherit properly from Sprite.
+
+We also set attributes for the screen and settings objects, and for the bullet’s color.
+
+At u, we create the bullet’s rect attribute.
+
+The bullet isn’t based on an image, so we have to build a rect from scratch using the pygame.Rect() class.
+
+This class requires the x and y coordinates of the top-left corner of the rect, and the width and height of the rect.
+
+We initialize the rect at (0, 0), but we’ll move it to the correct location in the next line, because the bullet’s
+position depends on the ship’s position. 
+
+We get the width and height of the bullet from the values stored in self.settings .
+
+At v, we set the bullet’s midtop attribute to match the ship’s midtop attri­bute.
+
+This will make the bullet emerge from the top of the ship, making it look like the bullet is fired from the ship. We store a decimal value for the
+bullet’s y-coordinate so we can make fine adjustments to the bullet’s speed w.
