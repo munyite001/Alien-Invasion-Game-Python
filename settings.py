@@ -1,3 +1,5 @@
+
+
 class Settings:
     """ A class to store all settings for Alien invasion"""
     def __init__(self):
@@ -17,7 +19,8 @@ class Settings:
 
         #Aliens settings
         self.alien_speed = 1.0
-        self.fleet_drop_speed = 70
+        self.fleet_drop_speed = 10
 
         # A fleet_direction of 1 represents right movement, -1 represents left movement.
         self.fleet_direction = 1
+
