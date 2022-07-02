@@ -1,7 +1,7 @@
 from email.headerregistry import Group
 import pygame.font
 
-from pygame import Sprite
+from pygame.sprite import Sprite
 
 from ship import Ship
 
@@ -10,11 +10,12 @@ class Scoreboard:
     def __init__(self,ai_game):
         """initialize score keeping attributes"""
 
+        self.ai_game = ai_game
         self.screen = ai_game.screen
         self.screen_rect = self.screen.get_rect()
         self.settings = ai_game.settings
         self.stats = ai_game.stats
-        self.prep_ships
+        self.prep_ships()
 
         #Font settings for scoring information
         self.text_color = (30,30,30)
@@ -52,13 +53,6 @@ class Scoreboard:
         self.high_score_rect.centerx = self.screen_rect.centerx
         self.high_score_rect.top = self.score_rect.top
 
-    def show_score(self):
-        """Draw the scores, current level and ships remaining to the screen"""
-        self.screen.blit(self.score_image,self.score_rect)
-        self.screen.blit(self.high_score_image,self.high_score_rect)
-        self.screen.blit(self.level_image,self.level_rect)
-        self.ships.draw(self.screen)
-
 
     def check_high_score(self):
         """Check to see if there's a new high score."""
@@ -78,9 +72,17 @@ class Scoreboard:
 
     def prep_ships(self):
         """Show how many ships are left"""
-        self.ships = Group()
-        for ship_number in range(self.stats.ship_left):
+        self.ships = pygame.sprite.Group()
+        for ship_number in range(self.stats.ships_left):
             ship = Ship(self.ai_game)
             ship.rect.x = 10 + ship_number * ship.rect.width
             ship.rect.y = 10
             self.ships.add(ship)
+
+    
+    def show_score(self):
+        """Draw the scores, current level and ships remaining to the screen"""
+        self.screen.blit(self.score_image,self.score_rect)
+        self.screen.blit(self.high_score_image,self.high_score_rect)
+        self.screen.blit(self.level_image,self.level_rect)
+        self.ships.draw(self.screen)
