@@ -1,6 +1,6 @@
 # ALIEN INVASION GAME IN PYTHON
 
-!['Screenshot'](images/Alien Invasion.png)
+![](images/Alien Invasion.png)
 
 **Pre-Requisites**
 To work on this project, you'll need:
