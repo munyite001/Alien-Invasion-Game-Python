@@ -1,6 +1,6 @@
 # ALIEN INVASION GAME IN PYTHON
 
-![](images/Alien Invasion.png)
+![Alien-invasion-home](images/Alien Invasion.png)
 
 **Pre-Requisites**
 To work on this project, you'll need:
@@ -19,7 +19,7 @@ settings are assigned to settings, the main display surface is assigned to
 screen, and a ship instance is created in this file as well. The main loop of
 the game, a while loop, is also stored in this module. The while loop calls
 _check_events(), ship.update(), and _update_screen().
-The _check_events() method detects relevant events, such as key­
+The _check_events() method detects relevant events, such as key
 presses and releases, and processes each of these types of events through
 the methods _check_keydown_events() and _check_keyup_events(). The AlienInvasion class also
 contains _update_screen(), which redraws the screen on each pass through
