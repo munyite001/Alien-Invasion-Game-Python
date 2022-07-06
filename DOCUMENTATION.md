@@ -11,7 +11,7 @@ That's it
 ---
 ![Alien_Invasion_Screenshot!](images/Alien Invasion.png)
 ---
-To access the Full project source code and files, visit the repo on [Github]().
+To access the Full project source code and files, visit the repo on [Github](https://github.com/munyite001/Alien-Invasion-Game-Python).
 ---
 ##  Pygame
 Pygame is a collection of powerful python modules that manage animations, graphics and even sound, to build powerful applications, like games etc

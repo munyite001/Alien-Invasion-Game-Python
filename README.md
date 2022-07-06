@@ -41,14 +41,14 @@ ship.bmp, which is in the images folder.
 
 
 ##  Project Resources
-To access the Full project source code and files, visit the repo on [Github](githublink).
+To access the Full project source code and files, visit the repo on [Github](https://github.com/munyite001/Alien-Invasion-Game-Python).
 
 ### Documentation
 To access the full project documentation and step by step tutorial: [Documentation](DOCUMENTATION.md)
 
 ### Author
-The author of this project is [Emmanuel_Munyite](githublink)
+The author of this project is [Emmanuel_Munyite](https://github.com/munyite001)
 - Email on <emunyite@gmail.com>
-- Linkedin <lnkedin>
+- Linkedin [Emmanuel Munyite](https://www.linkedin.com/in/emmanuel-munyite-68545023a/?lipi=urn%3Ali%3Apage%3Ad_flagship3_feed%3B08aMskKBRQu1mVw9TyWKkw%3D%3D)
 
 
