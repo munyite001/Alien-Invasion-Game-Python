@@ -9,7 +9,7 @@ To work on this project, you'll need:
 - Installed Pygame
 That's it
 ---
-![Alien_Invasion_Screenshot!](images/Alien Invasion.png)
+<img src="images/Alien Invasion.png" alt="Alien Invasion Game Screenshot"/>
 ---
 To access the Full project source code and files, visit the repo on [Github](https://github.com/munyite001/Alien-Invasion-Game-Python).
 ---
