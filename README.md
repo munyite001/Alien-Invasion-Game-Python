@@ -1,6 +1,6 @@
 # ALIEN INVASION GAME IN PYTHON
 
-![Alien-invasion-home](images/Alien Invasion.png)
+<img src="images/Alien Invasion.png" alt="Alien invasion Screenshot">
 
 **Pre-Requisites**
 To work on this project, you'll need:
