@@ -1215,3 +1215,487 @@ Run alien_invasion.py one more time, and make sure you can still fire
 bullets without errors.
 
 ### ALIENS
+Placing one alien on the screen will be like placing a ship on the screen. Each
+alien’s behavior is controlled by a class called Alien, which we’ll structure
+like the Ship class. Choose the image you'll be using in your project and store it in your images folder.
+
+####    Creating the aliens class
+Now we’ll write the Alien class and save it as alien.py:
+```python
+#Aliens.py
+
+import pygame
+from pygame.sprite import Sprite
+
+class Alien(Sprite):
+    """A class to represent a single alien in the fleet."""
+
+    def __init__(self, ai_game):
+        """Initialize the alien and set its starting position."""
+
+        super().__init__()
+
+        self.screen = ai_game.screen
+        
+        # Load the alien image and set its rect attribute.
+        self.image = pygame.image.load('images/alien.bmp')
+        self.rect = self.image.get_rect()
+
+        # Start each new alien near the top left of the screen.
+        self.rect.x = self.rect.width
+        self.rect.y = self.rect.height
+
+        # Store the alien's exact horizontal position.
+        self.x = float(self.rect.x)
+```
+Most of this class is like the Ship class except for the aliens’ placement
+on the screen. We initially place each alien near the top-left corner of
+the screen; we add a space to the left of it that’s equal to the alien’s width
+and a space above it equal to its height so it’s easy to see. We’re mainly
+concerned with the aliens’ horizontal speed, so we’ll track the horizontal
+position of each alien precisely.
+
+This Alien class doesn’t need a method for drawing it to the screen;
+instead, we’ll use a Pygame group method that automatically draws all the
+elements of a group to the screen.
+
+#### Creating an instance of an alien
+We want to create an instance of Alien so we can see the first alien on
+the screen. Because it’s part of our setup work, we’ll add the code for this
+instance at the end of the __init__() method in AlienInvasion. Eventually,
+we’ll create an entire fleet of aliens, which will be quite a bit of work,
+so we’ll make a new helper method called _create_fleet().
+I’ll place _create_fleet() just before the
+_update_screen() method, but anywhere in AlienInvasion will work. First, we’ll
+import the Alien class.
+Here are the updated import statements for alien_invasion.py:
+```python
+
+#alien_invasion.py
+
+--snip--
+from bullet import Bullet
+from alien import Alien
+
+```
+The updated __init__ method:
+```python
+#   alien_invasion.py
+def __init__(self):
+    --snip--
+    self.ship = Ship(self)
+    self.bullets = pygame.sprite.Group()
+    self.aliens = pygame.sprite.Group()
+    self._create_fleet()
+```
+We create a group to hold the fleet of aliens, and we call _create_fleet(),
+which follows below.
+```python
+#   alien_invasion.py
+def _create_fleet(self):
+    """Create the fleet of aliens."""
+    # Make an alien.
+    alien = Alien(self)
+    self.aliens.add(alien)
+```
+In this method, we’re creating one instance of Alien, and then adding it
+to the group that will hold the fleet. The alien will be placed in the default
+upper-left area of the screen, which is perfect for the first alien.
+
+To make the alien appear, we need to call the group’s draw() method in
+_update_screen():
+
+```python
+#   alien_invasion.py
+def _update_screen(self):
+    --snip--
+    for bullet in self.bullets.sprites():
+        bullet.draw_bullet()
+
+    self.aliens.draw(self.screen)
+
+    pygame.display.flip()
+
+```
+When you call draw() on a group, Pygame draws each element in the
+group at the position defined by its rect attribute. The draw() method
+requires one argument: a surface on which to draw the elements from the
+group.
+When you run the game now in alien_invasion.py, you shoud see the first alien displayed on the screen
+
+####    Building the Alien fleet
+To draw a fleet, we need to figure out how many aliens can fit across the
+screen and how many rows of aliens can fit down the screen. We’ll first fig-
+ure out the horizontal spacing between aliens and create a row; then we’ll
+determine the vertical spacing and create an entire fleet.
+
+####    Determining How Many Aliens Fit in a Row
+To figure out how many aliens fit in a row, let’s look at how much horizontal
+space we have. The screen width is stored in settings.screen_width, but we
+need an empty margin on either side of the screen. We’ll make this margin
+the width of one alien. Because we have two margins, the available space for
+aliens is the screen width minus two alien widths:
+
+`available_space_x = settings.screen_width – (2 * alien_width)`
+
+We also need to set the spacing between aliens; we’ll make it one alien
+width. The space needed to display one alien is twice its width: one width
+for the alien and one width for the empty space to its right. To find the
+number of aliens that fit across the screen, we divide the available space by
+two times the width of an alien. We use floor division (//), which divides two
+numbers and drops any remainder, so we’ll get an integer number of aliens:
+
+`number_aliens_x = available_space_x // (2 * alien_width)`
+
+####    Creating a Row of Aliens
+We’re ready to generate a full row of aliens. Because our code for making
+a single alien works, we’ll rewrite _create_fleet() to make a whole row of
+aliens:
+```python
+#alien_invasion.py
+
+def _create_fleet(self):
+    """Create the fleet of aliens."""
+
+    # Create an alien and find the number of aliens in a row.
+    # Spacing between each alien is equal to one alien width.
+    alien = Alien(self)
+    alien_width = alien.rect.width
+    available_space_x = self.settings.screen_width - (2 * alien_width)
+    number_aliens_x = available_space_x // (2 * alien_width)
+
+    # Create the first row of aliens.
+    for alien_number in range(number_aliens_x):
+
+        # Create an alien and place it in the row.
+        alien = Alien(self)
+        alien.x = alien_width + 2 * alien_width * alien_number
+        alien.rect.x = alien.x
+        self.aliens.add(alien)
+```
+We’ve already thought through most of this code. We need to know the
+alien’s width and height to place aliens, so we create an alien before
+we perform calculations. This alien won’t be part of the fleet, so don’t add
+it to the group aliens. Then we get the alien’s width from its rect attribute
+and store this value in alien_width so we don’t have to keep working through
+the rect attribute. Then we calculate the horizontal space available for aliens
+and the number of aliens that can fit into that space.
+Next, we set up a loop that counts from 0 to the number of aliens we
+need to make. In the main body of the loop, we create a new alien and
+then set its x-coordinate value to place it in the row. Each alien is pushed
+to the right one alien width from the left margin. Next, we multiply the
+alien width by 2 to account for the space each alien takes up, including the
+empty space to its right, and we multiply this amount by the alien’s position
+in the row. We use the alien’s x attribute to set the position of its rect. Then
+we add each new alien to the group aliens.
+
+When you run Alien Invasion now, you should see the first row of aliens.
+The first row is offset to the left, which is actually good for gameplay.
+The reason is that we want the fleet to move right until it hits the edge
+of the screen, then drop down a bit, then move left, and so forth. Like the
+classic game Space Invaders, this movement is more interesting than having
+the fleet drop straight down. We’ll continue this motion until all aliens are
+shot down or until an alien hits the ship or the bottom of the screen.
+
+####    Refactoring _create_fleet()
+If the code we’ve written so far was all we need to create a fleet, we’d prob-
+ably leave _create_fleet() as is. But we have more work to do, so let’s clean
+up the method a bit. We’ll add a new helper method, _create_alien(), and
+call it from _create_fleet():
+```python
+#alien_invasion.py
+
+def _create_fleet(self):
+    --snip--
+
+    # Create the first row of aliens.
+    for alien_number in range(number_aliens_x):
+        self._create_alien(alien_number)
+
+def _create_alien(self, alien_number):
+    """Create an alien and place it in the row."""
+
+    alien = Alien(self)
+    alien_width = alien.rect.width
+    alien.x = alien_width + 2 * alien_width * alien_number
+    alien.rect.x = alien.x
+    self.aliens.add(alien)
+
+```
+The method _create_alien() requires one parameter in addition to self:
+it needs the alien number that’s currently being created. We use the same
+body we made for _create_fleet() except that we get the width of an alien
+inside the method instead of passing it as an argument. This refactoring
+will make it easier to add new rows and create an entire fleet.
+
+####    Adding Rows
+To finish the fleet, we’ll determine the number of rows that fit on the screen
+and then repeat the loop for creating the aliens in one row until we have
+the correct number of rows. To determine the number of rows, we find the
+available vertical space by subtracting the alien height from the top, the ship
+height from the bottom, and two alien heights from the bottom of the screen:
+
+`available_space_y = settings.screen_height – (3 * alien_height) – ship_height`
+
+The result will create some empty space above the ship, so the player
+has some time to start shooting aliens at the beginning of each level.
+Each row needs some empty space below it, which we’ll make equal to the
+height of one alien. To find the number of rows, we divide the available space
+by two times the height of an alien. We use floor division because we can only
+make an integer number of rows.
+
+`number_rows = available_height_y // (2 * alien_height)`
+
+Now that we know how many rows fit in a fleet, we can repeat the code
+for creating a row:
+```python
+#alien_invasion.py
+
+def _create_fleet(self):
+    --snip--
+    alien = Alien(self)
+    alien_width, alien_height = alien.rect.size
+    available_space_x = self.settings.screen_width - (2 * alien_width)
+    number_aliens_x = available_space_x // (2 * alien_width)
+    
+    # Determine the number of rows of aliens that fit on the screen.
+    ship_height = self.ship.rect.height
+    available_space_y = (self.settings.screen_height - (3 * alien_height) - ship_height)
+
+    number_rows = available_space_y // (2 * alien_height)
+
+    # Create the full fleet of aliens.
+    for row_number in range(number_rows):
+        for alien_number in range(number_aliens_x):
+            self._create_alien(alien_number, row_number)
+
+def _create_alien(self, alien_number, row_number):
+    """Create an alien and place it in the row."""
+
+    alien = Alien(self)
+    alien_width, alien_height = alien.rect.size
+    alien.x = alien_width + 2 * alien_width * alien_number
+    alien.rect.x = alien.x
+    alien.rect.y = alien.rect.height + 2 * alien.rect.height * row_number
+    self.aliens.add(alien)
+```
+We need the width and height of an alien, so at we use the attribute
+size, which contains a tuple with the width and height of a rect object. To
+calculate the number of rows we can fit on the screen, we write our available
+_space_y calculation right after the calculation for available_space_x. The
+calculation is wrapped in parentheses so the outcome can be split over two
+lines, which results in lines of 79 characters or less.
+
+To create multiple rows, we use two nested loops: one outer and one
+inner loop. The inner loop creates the aliens in one row. The outer loop
+counts from 0 to the number of rows we want; Python uses the code for
+making a single row and repeats it number_rows times.
+
+To nest the loops, write the new for loop and indent the code you want
+to repeat.  Now when we call _create_alien(), we
+include an argument for the row number so each row can be placed farther
+down the screen.
+The definition of _create_alien() needs a parameter to hold the row
+number. Within _create_alien(), we change an alien’s y-coordinate value
+when it’s not in the first row by starting with one alien’s height to c­reate
+empty space at the top of the screen. Each row starts two alien heights below
+the previous row, so we multiply the alien height by two and then by the row
+number. The first row number is 0, so the vertical placement of the first row
+is unchanged. All subsequent rows are placed further down the screen.
+When you run the game now, you should see a full fleet of aliens.
+
+
+####    Making the Fleet Move
+Now let’s make the fleet of aliens move to the right across the screen until
+it hits the edge, and then make it drop a set amount and move in the other
+direction. We’ll continue this movement until either all aliens have been shot down or
+one collides with the ship, or one reaches the bottom of the screen. Let’s
+begin by making the fleet move to the right.
+
+####    Moving the Aliens Right
+To move the aliens, we’ll use an update() method in alien.py, which we’ll
+call for each alien in the group of aliens. First, add a setting to control the
+speed of each alien:
+
+```python
+#settings.py
+
+def __init__(self):
+    --snip--
+    # Alien settings
+    self.alien_speed = 1.0
+```
+Then use this setting to implement update():
+
+```python
+#alien.py
+
+def __init__(self, ai_game):
+    """Initialize the alien and set its starting position."""
+
+    super().__init__()
+    self.screen = ai_game.screen
+    self.settings = ai_game.settings
+    --snip--
+    
+def update(self):
+    """Move the alien to the right."""
+    
+    self.x += self.settings.alien_speed
+    self.rect.x = self.x
+
+```
+We create a settings parameter in __init__() so we can access the alien’s
+speed in update(). Each time we update an alien’s position, we move it to the
+right by the amount stored in alien_speed. We track the alien’s exact position
+with the self.x attribute, which can hold decimal values. We then use the
+value of self.x to update the position of the alien’s rect.
+In the main while loop, we already have calls to update the ship and
+bullet positions. Now we’ll add a call to update the position of each alien
+as well:
+```python
+#alien_invasion.py
+
+while True:
+    self._check_events()
+    self.ship.update()
+    self._update_bullets()
+    self._update_aliens()
+    self._update_screen()
+
+```
+We’re about to write some code to manage the movement of the fleet,
+so we create a new method called _update_aliens(). We set the aliens’ posi-
+tions to update after the bullets have been updated, because we’ll soon be
+checking to see whether any bullets hit any aliens.
+Where you place this method in the module is not critical. But to
+keep the code organized, we’ll place it just after _update_bullets() to match
+the order of method calls in the while loop. Here’s the first version of
+_update_aliens():
+```python
+#alien_invasion.py
+
+def _update_aliens(self):
+    """Update the positions of all aliens in the fleet."""
+
+    self.aliens.update()
+```
+We use the update() method on the aliens group, which calls each
+alien’s update() method. When you run Alien Invasion now, you should see
+the fleet move right and disappear off the side of the screen.
+
+####    Creating Settings for Fleet Direction
+Now we’ll create the settings that will make the fleet move down the screen
+and to the left when it hits the right edge of the screen. Here’s how to imple-
+ment this behavior:
+
+```python
+#settings.py
+
+# Alien settings
+self.alien_speed = 1.0
+self.fleet_drop_speed = 10
+
+# fleet_direction of 1 represents right; -1 represents left.
+self.fleet_direction = 1
+```
+The setting fleet_drop_speed controls how quickly the fleet drops down
+the screen each time an alien reaches either edge. It’s helpful to separate
+this speed from the aliens’ horizontal speed so you can adjust the two
+speeds independently.
+To implement the setting fleet_direction, we could use a text value, such
+as 'left' or 'right', but we’d end up with if-elif statements testing for the
+fleet direction. Instead, because we have only two directions to deal with,
+let’s use the values 1 and −1, and switch between them each time the fleet
+changes direction. (Using numbers also makes sense because moving right
+involves adding to each alien’s x-coordinate value, and moving left involves
+subtracting from each alien’s x-coordinate value.)
+
+####    Checking Whether an Alien Has Hit the Edge
+We need a method to check whether an alien is at either edge, and we need
+to modify update() to allow each alien to move in the appropriate direction.
+This code is part of the Alien class:
+
+```python
+#alien.py
+
+def check_edges(self):
+    """Return True if alien is at edge of screen."""
+
+    screen_rect = self.screen.get_rect()
+    if self.rect.right >= screen_rect.right or self.rect.left <= 0:
+        return True
+
+def update(self):
+    """Move the alien right or left."""
+
+    self.x += (self.settings.alien_speed *
+    self.settings.fleet_direction)
+    self.rect.x = self.x
+```
+We can call the new method check_edges() on any alien to see whether
+it’s at the left or right edge. The alien is at the right edge if the right attribute of its rect is greater than or equal to the right attribute of the screen’srect. 
+It’s at the left edge if its left value is less than or equal to 0 .
+We modify the method update() to allow motion to the left or right
+by multiplying the alien’s speed by the value of fleet_direction. If fleet
+_direction is 1, the value of alien_speed will be added to the alien’s current
+position, moving the alien to the right; if fleet_direction is −1, the value
+will be subtracted from the alien’s position, moving the alien to the left.
+
+####    Dropping the Fleet and Changing Direction
+When an alien reaches the edge, the entire fleet needs to drop down and
+change direction. Therefore, we need to add some code to AlienInvasion
+because that’s where we’ll check whether any aliens are at the left or right
+edge. We’ll make this happen by writing the methods _check_fleet_edges()
+and _change_fleet_direction(), and then modifying _update_aliens().
+
+```python
+#alien_invasion.py
+
+def _check_fleet_edges(self):
+    """Respond appropriately if any aliens have reached an edge."""
+
+    for alien in self.aliens.sprites():
+        if alien.check_edges():
+            self._change_fleet_direction()
+            break
+
+def _change_fleet_direction(self):
+    """Drop the entire fleet and change the fleet's direction."""
+
+    for alien in self.aliens.sprites():
+        alien.rect.y += self.settings.fleet_drop_speed
+    self.settings.fleet_direction *= -1
+```
+In _check_fleet_edges(), we loop through the fleet and call check_edges()
+on each alien. If check_edges() returns True, we know an alien is at an
+edge and the whole fleet needs to change direction; so we call _change_fleet
+_direction() and break out of the loop v. In _change_fleet_direction(), we
+loop through all the aliens and drop each one using the setting fleet_drop
+_speed; then we change the value of fleet_direction by multiplying its cur-
+rent value by −1. The line that changes the fleet’s direction isn’t part of the
+for loop. We want to change each alien’s vertical position, but we only want
+to change the direction of the fleet once.
+
+changes to _update_aliens():
+```python
+#alien_invasion.py
+
+def _update_aliens(self):
+    """
+    Check if the fleet is at an edge,
+    then update the positions of all aliens in the fleet.
+    """
+    self._check_fleet_edges()
+    self.aliens.update()
+```
+We’ve modified the method by calling _check_fleet_edges() before
+updating each alien’s position.
+When you run the game now, the fleet should move back and forth
+between the edges of the screen and drop down every time it hits an edge.
+Now we can start shooting down aliens and watch for any aliens that hit the
+ship or reach the bottom of the screen.
+
+####    Shooting Aliens
+
+
