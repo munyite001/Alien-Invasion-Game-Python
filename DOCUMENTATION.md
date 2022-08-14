@@ -2422,4 +2422,795 @@ which happens in _ship_hit(). Attention to details like this makes your game
 more professional looking and allows the player to focus on playing rather
 than figuring out the user interface.
 
-####    
+####    Leveling up
+In our current game, once a player shoots down the entire alien fleet, the
+player reaches a new level, but the game difficulty doesn’t change. Let’s
+liven things up a bit and make the game more challenging by increasing
+the game’s speed each time a player clears the screen.
+
+####    Modifying the Speed Settings
+We’ll first reorganize the Settings class to group the game settings into
+static and changing ones. We’ll also make sure that settings that change
+during the game reset when we start a new game. Here’s the __init__()
+method for settings.py:
+```python
+#settings.py
+
+def __init__(self):
+    """Initialize the game's static settings."""
+
+    # Screen settings
+    self.screen_width = 1200
+    self.screen_height = 800
+    self.bg_color = (230, 230, 230)
+
+    # Ship settings
+    self.ship_limit = 3
+
+    # Bullet settings
+    self.bullet_width = 3
+    self.bullet_height = 15
+    self.bullet_color = 60, 60, 60
+    self.bullets_allowed = 3
+
+    # Alien settings
+    self.fleet_drop_speed = 10
+
+    # How quickly the game speeds up
+    self.speedup_scale = 1.1
+    self.initialize_dynamic_settings()
+```
+We continue to initialize those settings that stay constant in the __init__()
+method. Then we add a speedup_scale setting to control how quickly the game
+speeds up: a value of 2 will double the game speed every time the player
+reaches a new level; a value of 1 will keep the speed constant. A value like
+1.1 should increase the speed enough to make the game challenging but not
+impossible. Finally, we call the initialize_dynamic_settings() method to initial-
+ize the values for attributes that need to change throughout the game.
+Here’s the code for initialize_dynamic_settings():
+
+```python
+#settings.py
+
+def initialize_dynamic_settings(self):
+    """Initialize settings that change throughout the game."""
+
+    self.ship_speed = 1.5
+    self.bullet_speed = 3.0
+    self.alien_speed = 1.0
+
+    # fleet_direction of 1 represents right; -1 represents left.
+    self.fleet_direction = 1
+```
+This method sets the initial values for the ship, bullet, and alien
+speeds. We’ll increase these speeds as the player progresses in the game
+and reset them each time the player starts a new game. We include fleet
+_direction in this method so the aliens always move right at the beginning
+of a new game. We don’t need to increase the value of fleet_drop_speed,
+because when the aliens move faster across the screen, they’ll also come
+down the screen faster.
+
+To increase the speeds of the ship, bullets, and aliens each
+time the player reaches a new level, we’ll write a new method called
+increase_speed():
+
+```python
+#settings.py
+
+def increase_speed(self):
+    """Increase speed settings."""
+
+    self.ship_speed *= self.speedup_scale
+    self.bullet_speed *= self.speedup_scale
+    self.alien_speed *= self.speedup_scale
+```
+To increase the speed of these game elements, we multiply each speed
+setting by the value of speedup_scale.
+We increase the game’s tempo by calling increase_speed() in _check
+_bullet_alien_collisions() when the last alien in a fleet has been shot down:
+
+```python
+#alien_invasion.py
+
+def _check_bullet_alien_collisions(self):
+
+    --snip--
+
+    if not self.aliens:
+        # Destroy existing bullets and create new fleet.
+        self.bullets.empty()
+        self._create_fleet()
+        self.settings.increase_speed()
+```
+Changing the values of the speed settings ship_speed, alien_speed, and
+bullet_speed is enough to speed up the entire game!
+
+####    Resetting the Speed
+Now we need to return any changed settings to their initial values each
+time the player starts a new game; otherwise, each new game would start
+with the increased speed settings of the previous game:
+
+```python
+#alien_invasion.py
+
+def _check_play_button(self, mouse_pos):
+    """Start a new game when the player clicks Play."""
+
+    button_clicked = self.play_button.rect.collidepoint(mouse_pos)
+
+    if button_clicked and not self.stats.game_active:
+        # Reset the game settings.
+        self.settings.initialize_dynamic_settings()
+        --snip--
+```
+Playing Alien Invasion should be more fun and challenging now. Each
+time you clear the screen, the game should speed up and become slightly
+more difficult. If the game becomes too difficult too quickly, decrease the
+value of settings.speedup_scale. Or if the game isn’t challenging enough,
+increase the value slightly. Find a sweet spot by ramping up the difficulty in
+a reasonable amount of time. The first couple of screens should be easy, the
+next few challenging but doable, and subsequent screens almost impossibly
+difficult.
+
+####    Scoring
+Let’s implement a scoring system to track the game’s score in real time and
+display the high score, level, and number of ships remaining.
+The score is a game statistic, so we’ll add a score attribute to GameStats:
+
+```python
+#game_stats.py
+class GameStats:
+    
+    --snip--
+    def reset_stats(self):
+        """Initialize statistics that can change during the game."""
+        
+        self.ships_left = self.ai_settings.ship_limit
+        self.score = 0
+```
+To reset the score each time a new game starts, we initialize score in
+reset_stats() rather than __init__().
+
+####    Displaying the Score
+To display the score on the screen, we first create a new class, Scoreboard. For
+now, this class will just display the current score, but eventually we’ll use
+it to report the high score, level, and number of ships remaining as well.
+Here’s the first part of the class; save it as scoreboard.py:
+
+```python
+#scoreboard.py
+import pygame.font
+class Scoreboard:
+    """A class to report scoring information."""
+
+    def __init__(self, ai_game):
+        """Initialize scorekeeping attributes."""
+
+        self.screen = ai_game.screen
+        self.screen_rect = self.screen.get_rect()
+        self.settings = ai_game.settings
+        self.stats = ai_game.stats
+
+        # Font settings for scoring information.
+        self.text_color = (30, 30, 30)
+        self.font = pygame.font.SysFont(None, 48)
+
+        # Prepare the initial score image.
+        self.prep_score()
+```
+Because Scoreboard writes text to the screen, we begin by importing the
+pygame.font module. Next, we give __init__() the ai_game parameter so it can
+access the settings, screen, and stats objects, which it will need to report the
+values we’re tracking. Then we set a text color and instantiate a font
+object.
+To turn the text to be displayed into an image, we call prep_score(),
+which we define here:
+
+```python
+#scoreboard.py
+
+def prep_score(self):
+    """Turn the score into a rendered image."""
+
+    score_str = str(self.stats.score)
+    self.score_image = self.font.render(score_str, True,
+    self.text_color, self.settings.bg_color)
+
+    # Display the score at the top right of the screen.
+    self.score_rect = self.score_image.get_rect()
+    self.score_rect.right = self.screen_rect.right - 20
+    self.score_rect.top = 20
+
+```
+In prep_score(), we turn the numerical value stats.score into a string,
+and then pass this string to render(), which creates the image. To display
+the score clearly onscreen, we pass the screen’s background color and the
+text color to render().
+We’ll position the score in the upper-right corner of the screen and
+have it expand to the left as the score increases and the width of the num-
+ber grows. To make sure the score always lines up with the right side of the
+screen, we create a rect called score_rect and set its right edge 20 pixels
+from the right edge of the screen. We then place the top edge 20 pixels
+down from the top of the screen.
+Then we create a show_score() method to display the rendered score
+image:
+
+```python
+#scoreboard.py
+
+def show_score(self):
+    """Draw score to the screen."""
+
+    self.screen.blit(self.score_image, self.score_rect)
+```
+This method draws the score image onscreen at the location score_rect
+specifies.
+
+####    Making a Scoreboard
+To display the score, we’ll create a Scoreboard instance in AlienInvasion. First,
+let’s update the import statements:
+
+```python
+#alien_invasion.py
+
+--snip--
+from game_stats import GameStats
+from scoreboard import Scoreboard
+--snip--
+```
+Next, we make an instance of Scoreboard in __init__():
+```python
+#alien_invasion.py
+
+def __init__(self):
+    --snip--
+    pygame.display.set_caption("Alien Invasion")
+    # Create an instance to store game statistics,
+    #and create a scoreboard.
+
+    self.stats = GameStats(self)
+    self.sb = Scoreboard(self)
+    --snip--
+```
+Then we draw the scoreboard onscreen in _update_screen():
+
+```python
+#alien_invasion.py
+
+def _update_screen(self):
+    --snip--
+    self.aliens.draw(self.screen)
+
+    # Draw the score information.
+    self.sb.show_score()
+
+    # Draw the play button if the game is inactive.
+    --snip--
+```
+
+We call show_score() just before we draw the Play button.
+When you run Alien Invasion now, a 0 should appear at the top right
+of the screen. (At this point, we just want to make sure the score appears in
+the right place before developing the scoring system further.)
+
+Next, we’ll assign point values to each alien!
+
+####    Updating the Score as Aliens Are Shot Down
+To write a live score onscreen, we update the value of stats.score whenever
+an alien is hit, and then call prep_score() to update the score image. But
+first, let’s determine how many points a player gets each time they shoot
+down an alien:
+
+```python
+#settings.py
+
+def initialize_dynamic_settings(self):
+    --snip--
+    # Scoring
+    self.alien_points = 50
+```
+We’ll increase each alien’s point value as the game progresses. To make
+sure this point value is reset each time a new game starts, we set the value in
+initialize_dynamic_settings().
+Let’s update the score each time an alien is shot down in _check_bullet
+_alien_collisions():
+
+```python
+#alien_invasion.py
+
+def _check_bullet_alien_collisions(self):
+    """Respond to bullet-alien collisions."""
+
+    # Remove any bullets and aliens that have collided.
+    collisions = pygame.sprite.groupcollide(
+    self.bullets, self.aliens, True, True)
+
+    if collisions:
+        self.stats.score += self.settings.alien_points
+        self.sb.prep_score()
+    --snip--
+```
+When a bullet hits an alien, Pygame returns a collisions dictionary.
+We check whether the dictionary exists, and if it does, the alien’s value is
+added to the score. We then call prep_score() to create a new image for the
+updated score.
+Now when you play Alien Invasion, you should be able to rack up points!
+
+####    Resetting the Score
+Right now, we’re only prepping a new score after an alien has been hit,
+which works for most of the game. But we still see the old score when a new
+game starts until the first alien is hit in the new game.
+We can fix this by prepping the score when starting a new game:
+
+```python
+#alien_invasion.py
+
+def _check_play_button(self, mouse_pos):
+    --snip--
+
+    if button_clicked and not self.stats.game_active:
+        --snip--
+        # Reset the game statistics.
+        self.stats.reset_stats()
+        self.stats.game_active = True
+        self.sb.prep_score()
+        --snip--
+```
+We call prep_score() after resetting the game stats when starting a new
+game. This preps the scoreboard with a 0 score.
+
+####    Making Sure to Score All Hits
+As currently written, our code could miss scoring for some aliens. For
+­example, if two bullets collide with aliens during the same pass through
+the loop or if we make an extra-wide bullet to hit multiple aliens, the
+player will only receive points for hitting one of the aliens. To fix this,
+let’s refine the way that bullet and alien collisions are detected.
+In _check_bullet_alien_collisions(), any bullet that collides with an alien
+becomes a key in the collisions dictionary. The value associated with each
+bullet is a list of aliens it has collided with. We loop through the values in
+the collisions dictionary to make sure we award points for each alien hit:
+
+
+```python
+#alien_invasion.py
+
+def _check_bullet_alien_collisions(self):
+    --snip--
+    if collisions:
+        for aliens in collisions.values():
+            self.stats.score += self.settings.alien_points * len(aliens)
+
+        self.sb.prep_score()
+    --snip--
+```
+
+If the collisions dictionary has been defined, we loop through all values
+in the dictionary. Remember that each value is a list of aliens hit by a single
+bullet. We multiply the value of each alien by the number of aliens in each
+list and add this amount to the current score. To test this, change the width
+of a bullet to 300 pixels and verify that you receive points for each alien you
+hit with your extra-wide bullets; then return the bullet width to its normal
+value.
+
+####    Increasing Point Values
+Because the game gets more difficult each time a player reaches a new level,
+aliens in later levels should be worth more points. To implement this func-
+tionality, we’ll add code to increase the point value when the game’s speed
+increases:
+
+```python
+settings.py
+class Settings:
+    """A class to store all settings for Alien Invasion."""
+
+    def __init__(self):
+        --snip--
+
+        # How quickly the game speeds up
+        self.speedup_scale = 1.1
+
+        # How quickly the alien point values increase
+        self.score_scale = 1.5
+        self.initialize_dynamic_settings()
+    
+    def initialize_dynamic_settings(self):
+        --snip--
+    
+    def increase_speed(self):
+        """Increase speed settings and alien point values."""
+    
+        self.ship_speed *= self.speedup_scale
+        self.bullet_speed *= self.speedup_scale
+        self.alien_speed *= self.speedup_scale
+        self.alien_points = int(self.alien_points * self.score_scale)
+```
+
+We define a rate at which points increase, which we call score_scale.
+A small increase in speed (1.1) makes the game more challenging quickly.
+But to see a more notable difference in scoring, we need to change the
+alien point value by a larger amount (1.5). Now when we increase the game’s
+speed, we also increase the point value of each hit. We use the int() func-
+tion to increase the point value by whole integers.
+To see the value of each alien, add a print() call to the increase_speed()
+method in Settings:
+
+```python
+#settings.py
+
+def increase_speed(self):
+    --snip--
+    self.alien_points = int(self.alien_points * self.score_scale)
+    print(self.alien_points)
+```
+The new point value should appear in the terminal every time you
+reach a new level.
+
+####    Rounding the Score
+Most arcade-style shooting games report scores as multiples of 10, so let’s
+follow that lead with our scores. Also, let’s format the score to include
+comma separators in large numbers. We’ll make this change in Scoreboard:
+
+```python
+#scoreboard.py
+
+def prep_score(self):
+    """Turn the score into a rendered image."""
+
+    rounded_score = round(self.stats.score, -1)
+    score_str = "{:,}".format(rounded_score)
+    self.score_image = self.font.render(score_str, True,
+    self.text_color, self.settings.bg_color)
+    --snip--
+```
+
+The round() function normally rounds a decimal number to a set number of decimal places given as the second argument. However, when you
+pass a negative number as the second argument, round() will round the
+value to the nearest 10, 100, 1000, and so on. The code above tells Python to
+round the value of stats.score to the nearest 10 and store it in rounded_score.
+Then a string formatting directive tells Python to insert commas into
+numbers when converting a numerical value to a string: for example, to
+output 1,000,000 instead of 1000000. Now when you run the game, you should
+see a neatly formatted, rounded score even when you rack up lots of points.
+
+
+####    High Scores
+Every player wants to beat a game’s high score, so let’s track and report high
+scores to give players something to work toward. We’ll store high scores in
+GameStats:
+
+```python
+#game_stats.py
+
+def __init__(self, ai_game):
+    --snip--
+
+    # High score should never be reset.
+    self.high_score = 0
+```
+
+Because the high score should never be reset, we initialize high_score in
+__init__() rather than in reset_stats().
+
+Next, we’ll modify Scoreboard to display the high score. Let’s start with
+the __init__() method:
+
+
+```python
+#scoreboard.py
+
+def __init__(self, ai_game):
+    --snip--
+
+    # Prepare the initial score images.
+    self.prep_score()
+    self.prep_high_score()
+```
+The high score will be displayed separately from the score, so we need a
+new method, prep_high_score(), to prepare the high score image.
+Here’s the prep_high_score() method:
+```python
+#scoreboard.py
+
+def prep_high_score(self):
+    """Turn the high score into a rendered image."""
+
+    high_score = round(self.stats.high_score, -1)
+    high_score_str = "{:,}".format(high_score)
+    self.high_score_image = self.font.render(high_score_str, True,
+    self.text_color, self.settings.bg_color)
+
+    # Center the high score at the top of the screen.
+    self.high_score_rect = self.high_score_image.get_rect()
+    self.high_score_rect.centerx = self.screen_rect.centerx
+    self.high_score_rect.top = self.score_rect.top
+```
+
+We round the high score to the nearest 10 and format it with commas.
+We then generate an image from the high score, center the high score
+rect horizontally, and set its top attribute to match the top of the score
+image.
+The show_score() method now draws the current score at the top right
+and the high score at the top center of the screen:
+
+```python
+#scoreboard.py
+def show_score(self):
+    """Draw score to the screen."""
+
+    self.screen.blit(self.score_image, self.score_rect)
+    self.screen.blit(self.high_score_image, self.high_score_rect)
+```
+To check for high scores, we’ll write a new method, check_high_score(),
+in Scoreboard:
+
+```python
+#scoreboard.py
+
+def check_high_score(self):
+    """Check to see if there's a new high score."""
+
+    if self.stats.score > self.stats.high_score:
+        self.stats.high_score = self.stats.score
+        self.prep_high_score()
+```
+The method check_high_score() checks the current score against the
+high score. If the current score is greater, we update the value of high_score
+and call prep_high_score() to update the high score’s image.
+
+We need to call check_high_score() each time an alien is hit after updat-
+ing the score in _check_bullet_alien_collisions():
+
+```python
+#alien_invasion.py
+
+def _check_bullet_alien_collisions(self):
+    --snip--
+    if collisions:
+        for aliens in collisions.values():
+            self.stats.score += self.settings.alien_points * len(aliens)
+        self.sb.prep_score()
+        self.sb.check_high_score()
+    --snip--
+```
+We call check_high_score() when the collisions dictionary is present, and
+we do so after updating the score for all the aliens that have been hit.
+The first time you play Alien Invasion, your score will be the high score,
+so it will be displayed as the current score and the high score. But when you
+start a second game, your high score should appear in the middle and your
+current score at the right
+
+####    Displaying the Level
+To display the player’s level in the game, we first need an attribute in
+GameStats representing the current level. To reset the level at the start of
+each new game, initialize it in reset_stats():
+
+```python
+#game_stats.py
+
+def reset_stats(self):
+"""Initialize statistics that can change during the game."""
+
+    self.ships_left = self.settings.ship_limit
+    self.score = 0
+    self.level = 1
+```
+To have Scoreboard display the current level, we call a new method, prep
+_level(), from __init__():
+
+```python
+#scoreboard.py
+
+def __init__(self, ai_game):
+    --snip--
+    self.prep_high_score()
+    self.prep_level()
+```
+
+Here’s prep_level():
+
+```python
+#scoreboard.py
+
+def prep_level(self):
+"""Turn the level into a rendered image."""
+
+    level_str = str(self.stats.level)
+    self.level_image = self.font.render(level_str, True,
+    self.text_color, self.settings.bg_color)
+
+    # Position the level below the score.
+    self.level_rect = self.level_image.get_rect()
+    self.level_rect.right = self.score_rect.right
+    self.level_rect.top = self.score_rect.bottom + 10
+```
+
+The prep_level() method creates an image from the value stored in
+stats.level and sets the image’s right attribute to match the score’s right
+attribute. It then sets the top attribute 10 pixels beneath the bottom of
+the score image to leave space between the score and the level.
+We also need to update show_score():
+
+```python
+#scoreboard.py
+def show_score(self):
+"""Draw scores and level to the screen."""
+
+    self.screen.blit(self.score_image, self.score_rect)
+    self.screen.blit(self.high_score_image, self.high_score_rect)
+    self.screen.blit(self.level_image, self.level_rect)
+```
+
+This new line draws the level image to the screen.
+We’ll increment stats.level and update the level image in _check_bullet
+_alien_collisions():
+
+```python
+#alien_invasion.py
+
+def _check_bullet_alien_collisions(self):
+    --snip--
+    if not self.aliens:
+
+        # Destroy existing bullets and create new fleet.
+        self.bullets.empty()
+        self._create_fleet()
+        self.settings.increase_speed()
+
+        # Increase level.
+        self.stats.level += 1
+        self.sb.prep_level()
+```
+
+If a fleet is destroyed, we increment the value of stats.level and call
+prep_level() to make sure the new level displays correctly.
+To ensure the level image updates properly at the start of a new game,
+we also call prep_level() when the player clicks the Play button:
+
+
+```python
+#alien_invasion.py
+
+def _check_play_button(self, mouse_pos):
+    --snip--
+    if button_clicked and not self.stats.game_active:
+        --snip--
+        self.sb.prep_score()
+        self.sb.prep_level()
+        --snip--
+```
+We call prep_level() right after calling prep_score().
+Now you’ll see how many levels you’ve completed.
+
+####    Displaying the Number of Ships
+Finally, let’s display the number of ships the player has left, but this time,
+let’s use a graphic. To do so, we’ll draw ships in the upper-left corner of
+the screen to represent how many ships are left, just as many classic arcade
+games do.
+First, we need to make Ship inherit from Sprite so we can create a group
+of ships:
+
+
+```python
+#ship.py
+
+import pygame
+from pygame.sprite import Sprite
+
+class Ship(Sprite):
+    """A class to manage the ship."""
+    
+    def __init__(self, ai_game):
+    """Initialize the ship and set its starting position."""
+
+        super().__init__()
+        --snip--
+```
+
+Here we import Sprite, make sure Ship inherits from Sprite, and call
+super() at the beginning of __init__().
+Next, we need to modify Scoreboard to create a group of ships we can
+display. Here are the import statements for Scoreboard:
+
+```python
+#scoreboard.py
+
+import pygame.font
+from pygame.sprite import Group
+from ship import Ship
+
+```
+Because we’re making a group of ships, we import the Group and Ship
+classes.
+Here’s __init__():
+
+```python
+#scoreboard.py
+def __init__(self, ai_game):
+    """Initialize scorekeeping attributes."""
+
+    self.ai_game = ai_game
+    self.screen = ai_game.screen
+    --snip--
+    self.prep_level()
+    self.prep_ships()
+```
+We assign the game instance to an attribute, because we’ll need it to
+create some ships. We call prep_ships() after the call to prep_level().
+Here’s prep_ships():
+
+```python
+#scoreboard.py
+
+def prep_ships(self):
+    """Show how many ships are left."""
+
+    self.ships = Group()
+    for ship_number in range(self.stats.ships_left):
+        ship = Ship(self.ai_game)
+        ship.rect.x = 10 + ship_number * ship.rect.width
+        ship.rect.y = 10
+        self.ships.add(ship)
+```
+The prep_ships() method creates an empty group, self.ships, to hold
+the ship instances. To fill this group, a loop runs once for every ship the
+player has left. Inside the loop, we create a new ship and set each ship’s
+x-coordinate value so the ships appear next to each other with a 10-pixel
+margin on the left side of the group of ships. We set the y-coordinate
+value 10 pixels down from the top of the screen so the ships appear in the
+upper-left corner of the screen. Then we add each new ship to the group
+ships .
+Now we need to draw the ships to the screen:
+
+```python
+#scoreboard.py
+
+def show_score(self):
+"""Draw scores, level, and ships to the screen."""
+
+    self.screen.blit(self.score_image, self.score_rect)
+    self.screen.blit(self.high_score_image, self.high_score_rect)
+    self.screen.blit(self.level_image, self.level_rect)
+    self.ships.draw(self.screen)
+```
+To display the ships on the screen, we call draw() on the group, and
+Pygame draws each ship.
+To show the player how many ships they have to start with, we call
+prep_ships() when a new game starts. We do this in _check_play_button() in
+AlienInvasion:
+
+```python
+#alien_invasion.py
+
+def _check_play_button(self, mouse_pos):
+    --snip--
+    if button_clicked and not self.stats.game_active:
+        --snip--
+        self.sb.prep_score()
+        self.sb.prep_level()
+        self.sb.prep_ships()
+        --snip--
+```
+We also call prep_ships() when a ship is hit to update the display of ship
+images when the player loses a ship:
+
+
+```python
+#alien_invasion.py
+
+def _ship_hit(self):
+"""Respond to ship being hit by alien."""
+
+    if self.stats.ships_left > 0:
+        
+        # Decrement ships_left, and update scoreboard.
+        self.stats.ships_left -= 1
+        self.sb.prep_ships()
+        --snip--
+```
+
+We call prep_ships() after decreasing the value of ships_left, so the
+correct number of ships displays each time a ship is destroyed.
+
+
+
+And that's it for the game Alien Invasion. Next, I will be building a flappy bird game using pygame.
