@@ -1697,5 +1697,433 @@ Now we can start shooting down aliens and watch for any aliens that hit the
 ship or reach the bottom of the screen.
 
 ####    Shooting Aliens
+We’ve built our ship and a fleet of aliens, but when the bullets reach the
+aliens, they simply pass through because we aren’t checking for collisions. In
+game programming, collisions happen when game elements overlap. To make
+the bullets shoot down aliens, we’ll use the method sprite.groupcollide() to
+look for collisions between members of two groups.
 
+####    Detecting Bullet Collisions
+We want to know right away when a bullet hits an alien so we can make an
+alien disappear as soon as it’s hit. To do this, we’ll look for collisions immediately after updating the position of all the bullets.
+The sprite.groupcollide() function compares the rects of each element
+in one group with the rects of each element in another group. In this case,
+it compares each bullet’s rect with each alien’s rect and returns a diction-
+ary containing the bullets and aliens that have collided. Each key in the
+dictionary will be a bullet, and the corresponding value will be the alien that
+was hit.
+Add the following code to the end of _update_bullets() to check for collisions between bullets and aliens:
+
+```python
+#alien_invasion.py
+def _update_bullets(self):
+    """Update position of bullets and get rid of old bullets."""
+
+    --snip--
+    # Check for any bullets that have hit aliens.
+    #If so, get rid of the bullet and the alien.
+
+    collisions = pygame.sprite.groupcollide(
+    self.bullets, self.aliens, True, True)
+```
+The new code we added compares the positions of all the bullets in
+self.bullets and all the aliens in self.aliens, and identifies any that overlap.
+Whenever the rects of a bullet and alien overlap, groupcollide() adds a key-
+value pair to the dictionary it returns. The two True arguments tell Pygame
+to delete the bullets and aliens that have collided. (To make a high-powered
+bullet that can travel to the top of the screen, destroying every alien in its
+path, you could set the first Boolean argument to False and keep the second
+Boolean argument set to True. The aliens hit would disappear, but all bullets
+would stay active until they disappeared off the top of the screen.)
+When you run Alien Invasion now, aliens you hit should disappear.
+
+####    Repopulating the Fleet
+One key feature of Alien Invasion is that the aliens are relentless: every time
+the fleet is destroyed, a new fleet should appear.
+To make a new fleet of aliens appear after a fleet has been destroyed,
+we first check whether the aliens group is empty. If it is, we make a call
+to _create_fleet(). We’ll perform this check at the end of _update_bullets(),
+because that’s where individual aliens are destroyed.
+
+```python
+#alien_invasion.py
+
+def _update_bullets(self):
+    --snip--
+
+    if not self.aliens:
+        # Destroy existing bullets and create new fleet.
+        self.bullets.empty()
+        self._create_fleet()
+```
+
+We check whether the aliens group is empty. An empty group evaluates to False, so this is a simple way to check whether the group is empty.
+If it is, we get rid of any existing bullets by using the empty() method, which
+removes all the remaining sprites from a group. We also call _create
+_fleet(), which fills the screen with aliens again.
+Now a new fleet appears as soon as you destroy the current fleet.
+
+####    Speeding Up the Bullets
+If you’ve tried firing at the aliens in the game’s current state, you might find
+that the bullets aren’t traveling at the best speed for gameplay. They might
+be a little slow on your system or way too fast. At this point, you can modify
+the settings to make the gameplay interesting and enjoyable on your system.
+We modify the speed of the bullets by adjusting the value of bullet_speed
+in settings.py. On my system, I’ll adjust the value of bullet_speed to 1.5, so the
+bullets travel a little faster:
+
+```python
+#settings.py
+
+# Bullet settings
+self.bullet_speed = 1.5
+self.bullet_width = 3
+--snip--
+```
+The best value for this setting depends on your system’s speed, so find a
+value that works for you. You can adjust other settings as well.
+
+####    Refactoring _update_bullets()
+Let’s refactor _update_bullets() so it’s not doing so many different tasks.
+We’ll move the code for dealing with bullet and alien collisions to a sepa-
+rate method:
+
+```python
+#alien_invasion.py
+
+def _update_bullets(self):
+    --snip--
+    # Get rid of bullets that have disappeared.
+    for bullet in self.bullets.copy():
+        if bullet.rect.bottom <= 0:
+            self.bullets.remove(bullet)
+    
+    self._check_bullet_alien_collisions()
+
+def _check_bullet_alien_collisions(self):
+    """Respond to bullet-alien collisions."""
+    # Remove any bullets and aliens that have collided.
+    collisions = pygame.sprite.groupcollide(
+    self.bullets, self.aliens, True, True)
+    
+    if not self.aliens:
+        # Destroy existing bullets and create new fleet.
+        self.bullets.empty()
+        self._create_fleet()
+```
+We’ve created a new method, _check_bullet_alien_collisions(), to look
+for collisions between bullets and aliens, and to respond appropriately if
+the entire fleet has been destroyed. Doing so keeps _update_bullets() from
+growing too long and simplifies further development.
+
+
+####    Ending the game
+What’s the fun and challenge in a game if you can’t lose? If the player
+doesn’t shoot down the fleet quickly enough, we’ll have the aliens destroy
+the ship when they make contact. At the same time, we’ll limit the number
+of ships a player can use, and we’ll destroy the ship when an alien reaches
+the bottom of the screen. The game will end when the player has used up
+all their ships.
+
+####    Detecting Alien and Ship Collisions
+We’ll start by checking for collisions between aliens and the ship so we
+can respond appropriately when an alien hits it. We’ll check for alien and
+ship collisions immediately after updating the position of each alien in
+AlienInvasion:
+```python
+#alien_invasion.py
+
+def _update_aliens(self):
+    --snip--
+    self.aliens.update()
+
+    # Look for alien-ship collisions.
+    if pygame.sprite.spritecollideany(self.ship, self.aliens):
+        print("Ship hit!!!")
+```
+The spritecollideany() function takes two arguments: a sprite and a
+group. The function looks for any member of the group that has collided
+with the sprite and stops looping through the group as soon as it finds one
+member that has collided with the sprite. Here, it loops through the group
+aliens and returns the first alien it finds that has collided with ship.
+If no collisions occur, spritecollideany() returns None and the if block
+won’t execute. If it finds an alien that has collided with the ship, it
+returns that alien and the if block executes: it prints Ship hit!!!. When an
+alien hits the ship, we’ll need to do a number of tasks: we’ll need to delete
+all remaining aliens and bullets, recenter the ship, and create a new fleet.
+Before we write code to do all this, we need to know that our approach for
+detecting alien and ship collisions works correctly. Writing a print() call is a
+simple way to ensure we’re detecting these collisions properly.
+Now when you run Alien Invasion, the message Ship hit!!! should appear
+in the terminal whenever an alien runs into the ship. When you’re testing
+this feature, set alien_drop_speed to a higher value, such as 50 or 100, so the
+aliens reach your ship faster.
+
+####    Responding to Alien and Ship Collisions
+Now we need to figure out exactly what will happen when an alien collides
+with the ship. Instead of destroying the ship instance and creating a new
+one, we’ll count how many times the ship has been hit by tracking statistics
+for the game. Tracking statistics will also be useful for scoring.
+Let’s write a new class, GameStats, to track game statistics, and save it as
+game_stats.py:
+
+```python
+#game_stats.py
+class GameStats:
+    """Track statistics for Alien Invasion."""
+
+    def __init__(self, ai_game):
+    """Initialize statistics."""
+
+        self.settings = ai_game.settings
+        self.reset_stats()
+
+    def reset_stats(self):
+        """Initialize statistics that can change during the game."""
+
+        self.ships_left = self.settings.ship_limit
+```
+We’ll make one GameStats instance for the entire time Alien Invasion is
+running. But we’ll need to reset some statistics each time the player starts
+a new game. To do this, we’ll initialize most of the statistics in the reset
+_stats() method instead of directly in __init__(). We’ll call this method
+from __init__() so the statistics are set properly when the GameStats instance
+is first created. But we’ll also be able to call reset_stats() any time the
+player starts a new game.
+
+Right now we have only one statistic, ships_left, the value of which will
+change throughout the game. The number of ships the player starts with
+should be stored in settings.py as ship_limit:
+
+```python
+#settings.py
+
+# Ship settings
+self.ship_speed = 1.5
+self.ship_limit = 3
+```
+We also need to make a few changes in alien_invasion.py to create an
+instance of GameStats. First, we’ll update the import statements at the top of
+the file:
+
+```python
+#alien_invasion.py
+
+import sys
+from time import sleep
+import pygame
+from settings import Settings
+from game_stats import GameStats
+from ship import Ship
+
+--snip--
+```
+
+We import the sleep() function from the time module in the Python
+standard library so we can pause the game for a moment when the ship is
+hit. We also import GameStats.
+We’ll create an instance of GameStats in __init__():
+
+```python
+alien_invasion.py
+
+def __init__(self):
+    --snip--
+    self.screen = pygame.display.set_mode(
+    (self.settings.screen_width, self.settings.screen_height))
+    pygame.display.set_caption("Alien Invasion")
+
+    # Create an instance to store game statistics.
+    self.stats = GameStats(self)
+    self.ship = Ship(self)
+--snip--
+```
+We make the instance after creating the game window but before defin-
+ing other game elements, such as the ship.
+When an alien hits the ship, we’ll subtract one from the number of
+ships left, destroy all existing aliens and bullets, create a new fleet, and
+reposition the ship in the middle of the screen. We’ll also pause the game
+for a moment so the player can notice the collision and regroup before a
+new fleet appears.
+Let’s put most of this code in a new method called _ship_hit(). We’ll call
+this method from _update_aliens() when an alien hits the ship:
+
+```python
+#alien_invasion.py
+
+def _ship_hit(self):
+    """Respond to the ship being hit by an alien."""
+
+    # Decrement ships_left.
+    self.stats.ships_left -= 1
+
+    # Get rid of any remaining aliens and bullets.
+    self.aliens.empty()
+    self.bullets.empty()
+
+    # Create a new fleet and center the ship.
+    self._create_fleet()
+    self.ship.center_ship()
+    
+    # Pause.
+    sleep(0.5)
+```
+The new method _ship_hit() coordinates the response when an alien
+hits a ship. Inside _ship_hit(), the number of ships left is reduced by 1,
+after which we empty the groups aliens and bullets.
+Next, we create a new fleet and center the ship. (We’ll add the
+method center_ship() to Ship in a moment.) Then we add a pause after the
+updates have been made to all the game elements but before any changes
+have been drawn to the screen, so the player can see that their ship has
+been hit. The sleep() call pauses program execution for half a second,
+long enough for the player to see that the alien has hit the ship. When the
+sleep() function ends, code execution moves on to the _update_screen()
+method, which draws the new fleet to the screen.
+In _update_aliens(), we replace the print() call with a call to _ship_hit()
+when an alien hits the ship:
+```python
+#alien_invasion.py
+
+def _update_aliens(self):
+    --snip--
+    if pygame.sprite.spritecollideany(self.ship, self.aliens):
+    self._ship_hit()
+```
+Here’s the new method center_ship(); add it to the end of ship.py:
+
+```python
+#ship.py
+
+def center_ship(self):
+    """Center the ship on the screen."""
+
+    self.rect.midbottom = self.screen_rect.midbottom
+    self.x = float(self.rect.x)
+```
+
+We center the ship the same way we did in __init__(). After centering
+it, we reset the self.x attribute, which allows us to track the ship’s exact
+position.
+
+Run the game, shoot a few aliens, and let an alien hit the ship. The
+game should pause, and a new fleet should appear with the ship centered
+at the bottom of the screen again.
+
+####    Aliens that Reach the Bottom of the Screen
+If an alien reaches the bottom of the screen, we’ll have the game respond
+the same way it does when an alien hits the ship. To check when this hap-
+pens, add a new method in alien_invasion.py:
+
+```python
+#alien_invasion.py
+
+def _check_aliens_bottom(self):
+    """Check if any aliens have reached the bottom of the screen."""
+
+    screen_rect = self.screen.get_rect()
+
+    for alien in self.aliens.sprites():
+        if alien.rect.bottom >= screen_rect.bottom:
+            # Treat this the same as if the ship got hit.
+            self._ship_hit()
+            break
+```
+The method _check_aliens_bottom() checks whether any aliens have
+reached the bottom of the screen. An alien reaches the bottom when its
+rect.bottom value is greater than or equal to the screen’s rect.bottom attri-
+bute. If an alien reaches the bottom, we call _ship_hit(). If one alien hits
+the bottom, there’s no need to check the rest, so we break out of the loop
+after calling _ship_hit().
+We’ll call this method from _update_aliens():
+
+```python
+#alien_invasion.py
+
+def _update_aliens(self):
+    --snip--
+
+    # Look for alien-ship collisions.
+    if pygame.sprite.spritecollideany(self.ship, self.aliens):
+        self._ship_hit()
+
+        # Look for aliens hitting the bottom of the screen.
+        self._check_aliens_bottom()
+```
+We call _check_aliens_bottom() after updating the positions of all the
+aliens and after looking for alien and ship collisions. Now a new fleet will
+appear every time the ship is hit by an alien or an alien reaches the bottom
+of the screen.
+
+####    Game Over!
+Alien Invasion feels more complete now, but the game never ends. The value
+of ships_left just grows increasingly negative. Let’s add a game_active flag as
+an attribute to GameStats to end the game when the player runs out of ships.
+We’ll set this flag at the end of the __init__() method in GameStats:
+
+```python
+#game_stats.py
+
+def __init__(self, ai_game):
+    --snip--
+
+    # Start Alien Invasion in an active state.
+    self.game_active = True
+```
+
+Now we add code to _ship_hit() that sets game_active to False when the
+player has used up all their ships:
+
+```python
+#alien_invasion.py
+
+def _ship_hit(self):
+    """Respond to ship being hit by alien."""
+
+    if self.stats.ships_left > 0:
+
+        # Decrement ships_left.
+        self.stats.ships_left -= 1
+        --snip--
+
+        # Pause.
+        sleep(0.5)
+
+    else:
+        self.stats.game_active = False
+```
+Most of _ship_hit() is unchanged. We’ve moved all the existing code
+into an if block, which tests to make sure the player has at least one ship
+remaining. If so, we create a new fleet, pause, and move on. If the player has
+no ships left, we set game_active to False.
+
+####    Identifying When Parts of the Game Should Run
+We need to identify the parts of the game that should always run and the
+parts that should run only when the game is active:
+
+```python
+#alien_invasion.py
+
+def run_game(self):
+    """Start the main loop for the game."""
+
+    while True:
+        self._check_events()
+        if self.stats.game_active:
+            self.ship.update()
+            self._update_bullets()
+            self._update_aliens()
+            self._update_screen()
+```
+In the main loop, we always need to call _check_events(), even if the
+game is inactive. For example, we still need to know if the user presses Q to
+quit the game or clicks the button to close the window. We also continue
+updating the screen so we can make changes to the screen while waiting to
+see whether the player chooses to start a new game. The rest of the function
+calls only need to happen when the game is active, because when the game
+is inactive, we don’t need to update the positions of game elements.
+Now when you play Alien Invasion, the game should freeze when you’ve
+used up all your ships.
+
+
+### Scoring
 
